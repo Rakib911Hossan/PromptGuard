@@ -2,22 +2,27 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_selection import chi2
+from collections import defaultdict
 import re
 
 
 def analyze_word_label_association(csv_file, text_column, label_column, min_freq=5):
-    df = pd.read_csv(csv_file)
+    df = pd.read_csv(csv_file, sep="\t")
+    # cast label to string
+    df["label"] = df["label"].astype(str)
+    print(df.head())
 
     def preprocess_text(text):
         if pd.isna(text):
             return ""
         text = str(text).lower()
-        text = re.sub(r"[^a-zA-Z\s]", "", text)
+        # Keep Bengali characters, English letters, and whitespace
+        text = re.sub(r"[^a-zA-Z\u0980-\u09FF\s]", "", text)
         return text
 
     df["processed_text"] = df[text_column].apply(preprocess_text)
 
-    vectorizer = CountVectorizer(min_df=min_freq, max_df=0.95, stop_words="english", ngram_range=(1, 1))
+    vectorizer = CountVectorizer(min_df=min_freq, max_df=0.95, ngram_range=(1, 1), token_pattern=r"[\u0980-\u09FF]+")
 
     X = vectorizer.fit_transform(df["processed_text"])
     feature_names = vectorizer.get_feature_names_out()
