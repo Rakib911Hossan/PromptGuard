@@ -7,6 +7,23 @@ import re
 
 
 def analyze_word_label_association(csv_file, text_column, label_column, min_freq=5):
+    """
+    Analyze the statistical association between words and labels using chi-square test.
+
+    This function performs chi-square feature selection to identify words that are
+    significantly associated with specific hate speech labels. It preprocesses Bengali
+    text by keeping only Bengali characters, English letters, and whitespace.
+
+    Args:
+        csv_file (str): Path to the CSV file containing the dataset
+        text_column (str): Name of the column containing text data
+        label_column (str): Name of the column containing labels
+        min_freq (int, optional): Minimum document frequency for words. Defaults to 5.
+
+    Returns:
+        dict: Dictionary mapping labels to lists of (word, chi2_score, p_value) tuples
+              sorted by chi-square score in descending order
+    """
     df = pd.read_csv(csv_file, sep="\t")
     # cast label to string
     df["label"] = df["label"].astype(str)
@@ -45,6 +62,16 @@ def analyze_word_label_association(csv_file, text_column, label_column, min_freq
 
 
 def print_results(results):
+    """
+    Print the word-label association analysis results in a formatted manner.
+
+    This function displays the top 20 words most associated with each label,
+    showing their chi-square scores and p-values in a readable format.
+
+    Args:
+        results (dict): Dictionary containing word-label association results
+                       from analyze_word_label_association function
+    """
     for label, word_scores in results.items():
         print(f"\nTop 20 words most associated with '{label}':")
         print("-" * 50)

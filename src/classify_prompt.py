@@ -19,6 +19,21 @@ Provide your classification inside <classification> tags."""
 
 
 def get_prompt(args, label2texts, input_sentence):
+    """
+    Generate a few-shot classification prompt for hate speech detection.
+
+    This function creates a structured prompt that includes examples for each
+    hate speech category and the input sentence to be classified. The prompt
+    follows a specific template designed for Bengali hate speech classification.
+
+    Args:
+        args: Command line arguments containing num_shots parameter
+        label2texts (dict): Dictionary mapping labels to lists of example texts
+        input_sentence (str): The Bengali sentence to be classified
+
+    Returns:
+        str: Formatted prompt string ready for language model inference
+    """
     examples = ""
     for label, texts in label2texts.items():
         curr_examples = "\n".join(texts[: args.num_shots])
