@@ -71,8 +71,10 @@ class OnlineVLLM:
         print(f"Running VLLM on {self.devices} for {self.model_id} on port {self.port}")
         max_model_len = 16384
         max_num_seqs = 256
-        if any(arg in self.model_id.lower() for arg in ["120", "235"]):
-            max_num_seqs = 4
+        if any(arg in self.model_id.lower() for arg in ["235"]):
+            max_num_seqs = 2
+        elif any(arg in self.model_id.lower() for arg in ["120"]):
+            max_num_seqs = 8
         elif any(arg in self.model_id.lower() for arg in ["70", "72"]):
             max_num_seqs = 128
         elif any(arg in self.model_id.lower() for arg in ["32", "30", "20"]):

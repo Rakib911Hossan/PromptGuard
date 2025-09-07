@@ -1,4 +1,5 @@
 import random
+import os
 from collections import defaultdict
 
 import pandas as pd
@@ -112,8 +113,21 @@ def parse_output(output):
     try:
         if "</think>" in output:
             output = output.split("</think>")[-1]
-        while "<classification>" in output and "</classification>" in output:
-            output = output.split("<classification>")[1].split("</classification>")[0].strip()
+
+        # Find the last occurrence of classification tags to handle multiple tags properly
+        if "<classification>" in output and "</classification>" in output:
+            # Find the last occurrence of classification tags
+            start_idx = output.rfind("<classification>")
+            end_idx = output.find("</classification>", start_idx)
+            if start_idx != -1 and end_idx != -1:
+                output = output[start_idx + len("<classification>") : end_idx].strip()
+            else:
+                # Fallback: try to find any classification content
+                parts = output.split("<classification>")
+                if len(parts) > 1:
+                    output = parts[-1].split("</classification>")[0].strip()
+
+        assert output in ["none", "sexism", "religious hate", "political hate", "profane", "abusive"], f"Invalid Output: {output}"
         return output
     except Exception as e:
         logger.warning(f"$$$$ Failed to parse output: {output}, error: {e}")
@@ -165,7 +179,13 @@ def run_row(args, label2texts, input_sentence):
         outputs.append(curr_output)
         max_iterations -= 1
 
-    return winners[0]
+    # If we still have a tie after max iterations, return the first winner
+    # or "none" as fallback if no winners exist (should not happen)
+    if winners:
+        return winners[0]
+    else:
+        logger.warning("No winners found after max iterations, returning 'none' as fallback")
+        return "none"
 
 
 def get_balanced_test_data(df):
@@ -208,6 +228,8 @@ def main(args):
         test_data = test_data.sample(n=10, random_state=42)
 
     if not args.test:
+        if os.path.exists(f"output/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv"):
+            return
         pred_labels = []
         gold_labels = []
         func_args = []
@@ -234,6 +256,8 @@ def main(args):
         dev_data = dev_data.reset_index(drop=True)
         dev_data.to_csv(f"output/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
     else:
+        if os.path.exists(f"output/test/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv"):
+            return
         pred_labels = []
         func_args = []
         for i, row in test_data.iterrows():
@@ -247,7 +271,7 @@ def main(args):
 
         submission_data = test_data[["id"]]
         submission_data["label"] = pred_labels
-        submission_data["model"] = args.model_id
+        submission_data["model"] = f"{args.model_id.replace('/', '_')}_{args.num_shots}_{args.num_turns}"
 
         def format_label(label):
             return " ".join(word.capitalize() for word in label.split())
