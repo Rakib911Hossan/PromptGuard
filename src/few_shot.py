@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import pandas as pd
 from joblib import Parallel, delayed
+from loguru import logger
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from tqdm import tqdm
 
@@ -44,11 +45,10 @@ def get_data():
     for label, texts in label2texts.items():
         label2texts[label] = random.sample(texts, mn)
 
-    # test_data = pd.read_csv("data/1a_dev.tsv", sep="\t")
-    # test_data = process_data(test_data)
-    test_data = None
-    dev_data = pd.read_csv("data/1a_dev_test.tsv", sep="\t")
+    dev_data = pd.read_csv("data/1a_dev.tsv", sep="\t")
     dev_data = process_data(dev_data)
+
+    test_data = pd.read_csv("data/1a_dev_test.tsv", sep="\t")
 
     return label2texts, dev_data, test_data
 
@@ -113,7 +113,8 @@ def parse_output(output):
         if "</think>" in output:
             output = output.split("</think>")[-1]
         return output.split("<classification>")[1].split("</classification>")[0]
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to parse output: {output}, error: {e}")
         return "none"
 
 
@@ -160,6 +161,8 @@ def run_row(args, label2texts, input_sentence):
         outputs.append(run_turn(args, 0, copy_label2texts, input_sentence))
         max_iterations -= 1
 
+    return winners[0]
+
 
 def get_balanced_test_data(df):
     """
@@ -198,41 +201,67 @@ def main(args):
     assert args.num_shots * args.num_turns <= len(label2texts[list(label2texts.keys())[0]])
     if args.debug:
         dev_data = get_balanced_test_data(dev_data)
+        test_data = test_data.sample(n=10, random_state=42)
 
-    pred_labels = []
-    gold_labels = []
-    func_args = []
-    for i, row in dev_data.iterrows():
-        input_sentence = row["text"]
-        func_args.append((args, label2texts, input_sentence))
-        gold_label = row["label"]
-        gold_labels.append(gold_label)
+    if not args.test:
+        pred_labels = []
+        gold_labels = []
+        func_args = []
+        for i, row in dev_data.iterrows():
+            input_sentence = row["text"]
+            func_args.append((args, label2texts, input_sentence))
+            gold_label = row["label"]
+            gold_labels.append(gold_label)
 
-    pred_labels = Parallel(n_jobs=-1, backend="threading")(
-        delayed(run_row)(args, label2texts, input_sentence) for args, label2texts, input_sentence in tqdm(func_args, desc="Running few-shot inference")
-    )
-    pred_labels = [pred_label.lower() for pred_label in pred_labels]
-    gold_labels = [gold_label.lower() for gold_label in gold_labels]
-    acc, precision, recall, f1 = evaluate(gold_labels, pred_labels)
-    print(f"Accuracy: {acc}")
-    print(f"Precision: {precision}")
-    print(f"Recall: {recall}")
-    print(f"F1: {f1}")
+        pred_labels = Parallel(n_jobs=-1, backend="threading")(
+            delayed(run_row)(args, label2texts, input_sentence) for args, label2texts, input_sentence in tqdm(func_args, desc="Running few-shot inference")
+        )
+        print(pred_labels)
+        pred_labels = [pred_label.lower() for pred_label in pred_labels]
+        gold_labels = [gold_label.lower() for gold_label in gold_labels]
+        acc, precision, recall, f1 = evaluate(gold_labels, pred_labels)
+        print(f"Accuracy: {acc}")
+        print(f"Precision: {precision}")
+        print(f"Recall: {recall}")
+        print(f"F1: {f1}")
 
-    dev_data["pred_label"] = pred_labels
-    dev_data["gold_label"] = gold_labels
-    dev_data = dev_data.reset_index(drop=True)
-    dev_data.to_csv(f"data/few_shot_results_{args.num_shots}_{args.num_turns}.csv", index=False)
+        dev_data["pred_label"] = pred_labels
+        dev_data["gold_label"] = gold_labels
+        dev_data = dev_data.reset_index(drop=True)
+        dev_data.to_csv(f"data/few_shot_results_{args.num_shots}_{args.num_turns}.csv", index=False)
+    else:
+        pred_labels = []
+        func_args = []
+        for i, row in test_data.iterrows():
+            input_sentence = row["text"]
+            func_args.append((args, label2texts, input_sentence))
+
+        pred_labels = Parallel(n_jobs=-1, backend="threading")(
+            delayed(run_row)(args, label2texts, input_sentence) for args, label2texts, input_sentence in tqdm(func_args, desc="Running few-shot inference")
+        )
+        pred_labels = [pred_label.lower() for pred_label in pred_labels]
+
+        submission_data = test_data[["id"]]
+        submission_data["label"] = pred_labels
+        submission_data["model"] = args.model_id
+
+        def format_label(label):
+            return " ".join(word.capitalize() for word in label.split())
+
+        submission_data["label"] = submission_data["label"].apply(format_label)
+        submission_data = submission_data.reset_index(drop=True)
+        submission_data.to_csv(f"data/few_shot_submission_{args.num_shots}_{args.num_turns}.csv", index=False)
 
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_id", type=str, default="Qwen/Qwen3-4B-Thinking-2507")
+    parser.add_argument("--model_id", type=str, default="Qwen/Qwen3-30B-A3B-Thinking-2507")
     parser.add_argument("--num_shots", type=int, default=5)
-    parser.add_argument("--num_turns", type=int, default=2)
+    parser.add_argument("--num_turns", type=int, default=7)
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--test", action="store_true", default=False)
     args = parser.parse_args()
     onlinevllm = OnlineVLLM(model_id=args.model_id)
     onlinevllm.init_vllm()

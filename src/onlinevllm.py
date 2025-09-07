@@ -74,8 +74,8 @@ class OnlineVLLM:
             vllm serve {self.model_id} \
                 -tp {len(self.devices.split(","))} \
                 --load-format safetensors \
-                --gpu-memory-utilization 0.90 \
-                --max-model-len 32768 \
+                --gpu-memory-utilization 0.95 \
+                --max-model-len 16384 \
                 --port {self.port} \
         """
         if "qwen3" in self.model_id.lower() and "thinking" in self.model_id.lower():
