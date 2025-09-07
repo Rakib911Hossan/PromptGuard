@@ -127,7 +127,14 @@ def parse_output(output):
                 if len(parts) > 1:
                     output = parts[-1].split("</classification>")[0].strip()
 
-        assert output in ["none", "sexism", "religious hate", "political hate", "profane", "abusive"], f"Invalid Output: {output}"
+        if output not in ["none", "sexism", "religious hate", "political hate", "profane", "abusive"]:
+            # fallback to the first label that appears in the output
+            for label in ["sexism", "religious", "political", "profane", "abusive"]:
+                if label in output:
+                    output = label
+                    break
+            if output not in ["sexism", "religious", "political", "profane", "abusive"]:
+                raise ValueError(f"Invalid Output: {output}")
         return output
     except Exception as e:
         logger.warning(f"$$$$ Failed to parse output: {output}, error: {e}")
