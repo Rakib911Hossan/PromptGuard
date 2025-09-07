@@ -112,7 +112,9 @@ def parse_output(output):
     try:
         if "</think>" in output:
             output = output.split("</think>")[-1]
-        return output.split("<classification>")[1].split("</classification>")[0].strip()
+        while "<classification>" in output and "</classification>" in output:
+            output = output.split("<classification>")[1].split("</classification>")[0].strip()
+        return output
     except Exception as e:
         logger.warning(f"$$$$ Failed to parse output: {output}, error: {e}")
         return "none"
@@ -158,7 +160,9 @@ def run_row(args, label2texts, input_sentence):
         for key in copy_label2texts.keys():
             copy_label2texts[key] = random.sample(copy_label2texts[key], len(copy_label2texts[key]))
 
-        outputs.append(run_turn(args, 0, copy_label2texts, input_sentence))
+        curr_output = run_turn(args, 0, copy_label2texts, input_sentence)
+        curr_output = parse_output(curr_output)
+        outputs.append(curr_output)
         max_iterations -= 1
 
     return winners[0]
@@ -228,7 +232,7 @@ def main(args):
         dev_data["pred_label"] = pred_labels
         dev_data["gold_label"] = gold_labels
         dev_data = dev_data.reset_index(drop=True)
-        dev_data.to_csv(f"data/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
+        dev_data.to_csv(f"output/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
     else:
         pred_labels = []
         func_args = []

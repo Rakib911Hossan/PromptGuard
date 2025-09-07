@@ -25,35 +25,35 @@
 ##################################################
 # dev data
 ##################################################
-# for i in 3 7 10 16; do
-#     echo "Running for $i shots"
-#     PYTHONPATH=. uv run src/few_shot.py --model_id "Qwen/Qwen3-30B-A3B-Thinking-2507" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_30B_A3B_Thinking_2507_$i_shots.log"
+for i in 3 7 10 16; do
+    echo "Running for $i shots"
+    PYTHONPATH=. uv run src/few_shot.py --model_id "Qwen/Qwen3-30B-A3B-Thinking-2507" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_30B_A3B_Thinking_2507_$i.log"
 
-#     # PYTHONPATH=. uv run src/few_shot.py --model_id "Qwen/Qwen3-235B-A22B-Thinking-2507-FP8" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_235B_A22B_Thinking_2507_FP8_$i_shots.log"
+    # PYTHONPATH=. uv run src/few_shot.py --model_id "Qwen/Qwen3-235B-A22B-Thinking-2507-FP8" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_235B_A22B_Thinking_2507_FP8_$i.log"
 
-#     PYTHONPATH=. uv run src/few_shot.py --model_id "Qwen/Qwen3-32B" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_32B_$i_shots.log"
+    PYTHONPATH=. uv run src/few_shot.py --model_id "Qwen/Qwen3-32B" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_32B_$i.log"
 
-#     PYTHONPATH=. uv run src/few_shot.py --model_id "Qwen/QwQ-32B" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_32B_QwQ_$i_shots.log"
+    PYTHONPATH=. uv run src/few_shot.py --model_id "Qwen/QwQ-32B" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_32B_QwQ_$i.log"
 
-#     PYTHONPATH=. uv run src/few_shot.py --model_id "openai/gpt-oss-20b" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_20b_$i_shots.log"
+    PYTHONPATH=. uv run src/few_shot.py --model_id "openai/gpt-oss-20b" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_20b_$i.log"
 
-#     PYTHONPATH=. uv run src/few_shot.py --model_id "openai/gpt-oss-120b" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_120b_$i_shots.log"
-# done
+    PYTHONPATH=. uv run src/few_shot.py --model_id "openai/gpt-oss-120b" --num_turns 7 --num_shots $i |& tee "logs/dev/few_shot_submission_120b_$i.log"
+done
 
 ##################################################
 # test data
 ##################################################
 for i in 3 7 10 16; do
     echo "Running for $i shots"
-    # PYTHONPATH=. uv run src/few_shot.py --test --model_id "Qwen/Qwen3-30B-A3B-Thinking-2507" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_30B_A3B_Thinking_2507_$i_shots.log"
+    PYTHONPATH=. uv run src/few_shot.py --test --model_id "Qwen/Qwen3-30B-A3B-Thinking-2507" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_30B_A3B_Thinking_2507_$i.log"
 
-    # PYTHONPATH=. uv run src/few_shot.py --test --model_id "Qwen/Qwen3-235B-A22B-Thinking-2507-FP8" --num_turns 7 --num_shots $i |& tee "logs/few_shot_submission_235B_A22B_Thinking_2507_FP8_$i_shots.log"
+    # PYTHONPATH=. uv run src/few_shot.py --test --model_id "Qwen/Qwen3-235B-A22B-Thinking-2507-FP8" --num_turns 7 --num_shots $i |& tee "logs/few_shot_submission_235B_A22B_Thinking_2507_FP8_$i.log"
 
-    # PYTHONPATH=. uv run src/few_shot.py --test --model_id "Qwen/Qwen3-32B" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_32B_$i_shots.log"
+    PYTHONPATH=. uv run src/few_shot.py --test --model_id "Qwen/Qwen3-32B" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_32B_$i.log"
 
-    # PYTHONPATH=. uv run src/few_shot.py --test --model_id "Qwen/QwQ-32B" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_32B_QwQ_$i_shots.log"
+    PYTHONPATH=. uv run src/few_shot.py --test --model_id "Qwen/QwQ-32B" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_32B_QwQ_$i.log"
 
     PYTHONPATH=. uv run src/few_shot.py --test --model_id "openai/gpt-oss-20b" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_20b_$i.log"
 
-    # PYTHONPATH=. uv run src/few_shot.py --test --model_id "openai/gpt-oss-120b" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_120b_$i_shots.log"
+    PYTHONPATH=. uv run src/few_shot.py --test --model_id "openai/gpt-oss-120b" --num_turns 7 --num_shots $i |& tee "logs/test/few_shot_submission_120b_$i.log"
 done
