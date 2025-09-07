@@ -1,5 +1,5 @@
 classify_prompt = """\
-Your task is to classify a Bengali sentence into one of five hate speech categories: none, abusive, profane, religious hate, or political hate. Here are examples for each category:
+Your task is to classify a Bengali sentence into one of six hate speech categories: none, sexism, abusive, profane, religious hate, or political hate. Here are examples for each category:
 
 <examples>
 {EXAMPLES}

@@ -112,7 +112,7 @@ def parse_output(output):
     try:
         if "</think>" in output:
             output = output.split("</think>")[-1]
-        return output.split("<classification>")[1].split("</classification>")[0]
+        return output.split("<classification>")[1].split("</classification>")[0].strip()
     except Exception as e:
         logger.warning(f"$$$$ Failed to parse output: {output}, error: {e}")
         return "none"
@@ -228,7 +228,7 @@ def main(args):
         dev_data["pred_label"] = pred_labels
         dev_data["gold_label"] = gold_labels
         dev_data = dev_data.reset_index(drop=True)
-        dev_data.to_csv(f"data/few_shot_results_{args.num_shots}_{args.num_turns}.csv", index=False)
+        dev_data.to_csv(f"data/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
     else:
         pred_labels = []
         func_args = []
@@ -250,7 +250,7 @@ def main(args):
 
         submission_data["label"] = submission_data["label"].apply(format_label)
         submission_data = submission_data.reset_index(drop=True)
-        submission_data.to_csv(f"output/few_shot_submission_{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
+        submission_data.to_csv(f"output/test/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
 
 
 if __name__ == "__main__":
