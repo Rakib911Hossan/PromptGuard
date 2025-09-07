@@ -69,13 +69,22 @@ class OnlineVLLM:
             return
 
         print(f"Running VLLM on {self.devices} for {self.model_id} on port {self.port}")
+        max_model_len = 16384
+        max_num_seqs = 256
+        if any(arg in self.model_id.lower() for arg in ["120", "235"]):
+            max_num_seqs = 4
+        elif any(arg in self.model_id.lower() for arg in ["70", "72"]):
+            max_num_seqs = 128
+        elif any(arg in self.model_id.lower() for arg in ["32", "30", "20"]):
+            max_num_seqs = 256
         cmd = f"""
         export CUDA_VISIBLE_DEVICES={self.devices} && \
             vllm serve {self.model_id} \
                 -tp {len(self.devices.split(","))} \
                 --load-format safetensors \
                 --gpu-memory-utilization 0.95 \
-                --max-model-len 16384 \
+                --max-model-len {max_model_len} \
+                --max-num-seqs {max_num_seqs} \
                 --port {self.port} \
         """
         if "qwen3" in self.model_id.lower() and "thinking" in self.model_id.lower():

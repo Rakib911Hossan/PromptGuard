@@ -114,7 +114,7 @@ def parse_output(output):
             output = output.split("</think>")[-1]
         return output.split("<classification>")[1].split("</classification>")[0]
     except Exception as e:
-        logger.warning(f"Failed to parse output: {output}, error: {e}")
+        logger.warning(f"$$$$ Failed to parse output: {output}, error: {e}")
         return "none"
 
 
@@ -250,7 +250,7 @@ def main(args):
 
         submission_data["label"] = submission_data["label"].apply(format_label)
         submission_data = submission_data.reset_index(drop=True)
-        submission_data.to_csv(f"data/few_shot_submission_{args.num_shots}_{args.num_turns}.csv", index=False)
+        submission_data.to_csv(f"output/few_shot_submission_{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
 
 
 if __name__ == "__main__":
@@ -266,3 +266,4 @@ if __name__ == "__main__":
     onlinevllm = OnlineVLLM(model_id=args.model_id)
     onlinevllm.init_vllm()
     main(args)
+    onlinevllm.kill_vllm()
