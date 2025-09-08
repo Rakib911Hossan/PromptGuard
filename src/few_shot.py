@@ -4,6 +4,7 @@ import random
 from collections import defaultdict
 
 import pandas as pd
+import wandb
 from joblib import Parallel, delayed
 from loguru import logger
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -16,20 +17,6 @@ random.seed(42)
 
 
 def get_data():
-    """
-    Load and preprocess training and development data for hate speech classification.
-
-    This function loads the training data, processes it by filling missing labels and
-    converting to string format, creates balanced examples for each label, and loads
-    the development/test data for evaluation.
-
-    Returns:
-        tuple: A tuple containing:
-            - label2texts (dict): Dictionary mapping labels to lists of example texts
-            - dev_data (pd.DataFrame): Development dataset for evaluation
-            - test_data (None): Test data (currently not used)
-    """
-
     def process_data(df):
         df["label"] = df["label"].fillna("none")
         df["label"] = df["label"].astype(str)
@@ -56,21 +43,6 @@ def get_data():
 
 
 def run_turn(args, turn_num, label2texts, input_sentence):
-    """
-    Execute a single turn of few-shot inference for hate speech classification.
-
-    This function selects the appropriate examples for the current turn, generates
-    a prompt using the selected examples, and gets a response from the language model.
-
-    Args:
-        args: Command line arguments containing num_shots parameter
-        turn_num (int): Current turn number (0-indexed)
-        label2texts (dict): Dictionary mapping labels to lists of example texts
-        input_sentence (str): The sentence to be classified
-
-    Returns:
-        str: The raw response content from the language model
-    """
     curr_label2texts = {label: texts[turn_num * args.num_shots : (turn_num + 1) * args.num_shots] for label, texts in label2texts.items()}
     prompt = get_prompt(args, curr_label2texts, input_sentence)
     response = onlinevllm.chat(prompt)
@@ -78,19 +50,6 @@ def run_turn(args, turn_num, label2texts, input_sentence):
 
 
 def evaluate(gold_values, pred_values):
-    """
-    Calculate evaluation metrics for hate speech classification.
-
-    Computes accuracy, precision, recall, and F1 score to assess the performance
-    of the classification model.
-
-    Args:
-        gold_values (list): List of ground truth labels
-        pred_values (list): List of predicted labels
-
-    Returns:
-        tuple: A tuple containing (accuracy, precision, recall, f1_score)
-    """
     acc = accuracy_score(gold_values, pred_values)
     precision = precision_score(gold_values, pred_values, average="weighted")
     recall = recall_score(gold_values, pred_values, average="weighted")
@@ -99,18 +58,6 @@ def evaluate(gold_values, pred_values):
 
 
 def parse_output(output):
-    """
-    Parse the raw model output to extract the classification result.
-
-    This function extracts the classification from the model's response by looking
-    for content within <classification> tags. If parsing fails, it returns "none".
-
-    Args:
-        output (str): Raw response from the language model
-
-    Returns:
-        str: Extracted classification label or "none" if parsing fails
-    """
     try:
         if "</think>" in output:
             output = output.split("</think>")[-1]
@@ -143,21 +90,6 @@ def parse_output(output):
 
 
 def run_row(args, label2texts, input_sentence):
-    """
-    Run multiple turns of few-shot inference with majority voting for final classification.
-
-    This function executes multiple turns of classification and uses majority voting
-    to determine the final prediction. If there's a tie, it runs additional turns
-    with shuffled examples until a clear winner emerges or max iterations are reached.
-
-    Args:
-        args: Command line arguments containing num_turns parameter
-        label2texts (dict): Dictionary mapping labels to lists of example texts
-        input_sentence (str): The sentence to be classified
-
-    Returns:
-        str: Final classification label determined by majority voting
-    """
     copy_label2texts = {label: texts for label, texts in label2texts.items()}
 
     outputs = []
@@ -197,24 +129,10 @@ def run_row(args, label2texts, input_sentence):
 
 
 def get_balanced_test_data(df):
-    """
-    Create a balanced subset of the test data for debugging purposes.
-
-    This function processes the dataframe by filling missing labels, converting to
-    lowercase, and sampling exactly 2 examples per label to create a balanced
-    dataset for faster debugging.
-
-    Args:
-        df (pd.DataFrame): Input dataframe with text and label columns
-
-    Returns:
-        pd.DataFrame: Balanced dataframe with 2 samples per label
-    """
     df["label"] = df["label"].fillna("none")
     df["label"] = df["label"].astype(str)
     df["label"] = df["label"].str.lower()
-    split = "dev" if not args.test else "test"
-    path = f"data/1a_{split}_balanced.csv"
+    path = f"data/1a_{args.split}.csv"
     if os.path.exists(path):
         return pd.read_csv(path)
     balanced_df = df.groupby("label").sample(n=10, random_state=42)
@@ -224,24 +142,14 @@ def get_balanced_test_data(df):
 
 
 def main(args):
-    """
-    Main function to run few-shot hate speech classification evaluation.
-
-    This function orchestrates the entire evaluation pipeline: loads data, runs
-    parallel inference on the development set, evaluates performance metrics,
-    and saves results to a CSV file.
-
-    Args:
-        args: Command line arguments containing model configuration and parameters
-    """
     label2texts, dev_data, test_data = get_data()
     assert args.num_shots * args.num_turns <= len(label2texts[list(label2texts.keys())[0]])
-    if args.debug:
+    if "balanced" in args.split:
         dev_data = get_balanced_test_data(dev_data)
         test_data = test_data.sample(n=10, random_state=42)
 
-    if not args.test:
-        if os.path.exists(f"output/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv"):
+    if "dev" in args.split:
+        if os.path.exists(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv"):
             return
         pred_labels = []
         gold_labels = []
@@ -255,20 +163,25 @@ def main(args):
         pred_labels = Parallel(n_jobs=-1, backend="threading")(
             delayed(run_row)(args, label2texts, input_sentence) for args, label2texts, input_sentence in tqdm(func_args, desc="Running few-shot inference")
         )
-        print(pred_labels)
         pred_labels = [pred_label.lower() for pred_label in pred_labels]
         gold_labels = [gold_label.lower() for gold_label in gold_labels]
         acc, precision, recall, f1 = evaluate(gold_labels, pred_labels)
 
-        with open(f"output/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.json", "w") as f:
+        wandb.init(project="few-shot-hate-speech", name=f"{args.model_id.replace('/', '_')}_{args.num_shots}_{args.num_turns}_{args.prompt}", config=args)
+        wandb.log({"accuracy": acc, "precision": precision, "recall": recall, "f1": f1})
+        wandb.finish()
+
+        os.makedirs(f"output/{args.split}/{args.prompt}", exist_ok=True)
+        with open(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.json", "w") as f:
             json.dump({"accuracy": acc, "precision": precision, "recall": recall, "f1": f1}, f, indent=2)
 
         dev_data["pred_label"] = pred_labels
         dev_data["gold_label"] = gold_labels
         dev_data = dev_data.reset_index(drop=True)
-        dev_data.to_csv(f"output/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
+        dev_data.to_csv(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
+        print(f"Saved dev data to {f'output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace("/", "_")}.csv'}")
     else:
-        if os.path.exists(f"output/test/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv"):
+        if os.path.exists(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv"):
             return
         pred_labels = []
         func_args = []
@@ -290,7 +203,8 @@ def main(args):
 
         submission_data["label"] = submission_data["label"].apply(format_label)
         submission_data = submission_data.reset_index(drop=True)
-        submission_data.to_csv(f"output/test/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
+        submission_data.to_csv(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
+        print(f"Saved test data to {f'output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace("/", "_")}.csv'}")
 
 
 if __name__ == "__main__":
@@ -300,8 +214,8 @@ if __name__ == "__main__":
     parser.add_argument("--model_id", type=str, default="Qwen/Qwen3-30B-A3B-Thinking-2507")
     parser.add_argument("--num_shots", type=int, default=5)
     parser.add_argument("--num_turns", type=int, default=7)
-    parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--test", action="store_true", default=False)
+    parser.add_argument("--prompt", type=str, default="classify_with_words")
+    parser.add_argument("--split", type=str, default="dev")
     args = parser.parse_args()
     onlinevllm = OnlineVLLM(model_id=args.model_id)
     onlinevllm.init_vllm()

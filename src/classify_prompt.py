@@ -40,19 +40,9 @@ Before making your final classification, analyze the sentence in detail. Conside
    - List evidence against classifying the sentence into this category.
 4. Summarize your findings and explain your final decision.
 
-Conduct your analysis inside <category_analysis> tags. It's OK for this section to be quite long.
+Your final output should be the category classification. Use only one of these exact category names: none, sexism, abusive, profane, religious hate, or political hate.
 
-After your analysis, classify the sentence into one of the six categories. Your final output should be the category name within <classification> tags.
-
-Example output format:
-<category_analysis>
-[Your detailed analysis here]
-</category_analysis>
-
-<classification>category_name</classification>
-
-Remember to use only one of these exact category names: none, sexism, abusive, profane, religious hate, or political hate.
-"""
+Provide your classification inside <classification> tags."""
 
 classify_with_words_prompt = """\
 You are an AI language model specialized in detecting hate speech in Bengali. Your task is to classify a given Bengali sentence into one of six categories: none, sexism, abusive, profane, religious hate, or political hate.
@@ -88,19 +78,9 @@ Before making your final classification, analyze the sentence in detail. Conside
    - List evidence against classifying the sentence into this category.
 5. Summarize your findings and explain your final decision.
 
-Conduct your analysis inside <category_analysis> tags. It's OK for this section to be quite long.
+Your final output should be the category classification. Use only one of these exact category names: none, sexism, abusive, profane, religious hate, or political hate.
 
-After your analysis, classify the sentence into one of the six categories. Your final output should be the category name within <classification> tags.
-
-Example output format:
-<category_analysis>
-[Your detailed analysis here]
-</category_analysis>
-
-<classification>category_name</classification>
-
-Remember to use only one of these exact category names: none, sexism, abusive, profane, religious hate, or political hate.
-"""
+Provide your classification inside <classification> tags."""
 
 
 def get_prompt(args, label2texts, input_sentence):
@@ -119,6 +99,11 @@ def get_prompt(args, label2texts, input_sentence):
     Returns:
         str: Formatted prompt string ready for language model inference
     """
+    PROMPT_ENGINE = {
+        "classify": classify_prompt,
+        "improved_classify": improved_classify_prompt,
+        "classify_with_words": classify_with_words_prompt,
+    }
     examples = ""
     for label, texts in label2texts.items():
         curr_examples = ""
@@ -129,7 +114,8 @@ def get_prompt(args, label2texts, input_sentence):
         examples += f"</{label}>\n\n"
     examples = examples.strip()
     examples = f"\n{examples}\n"
-    return improved_classify_prompt.format(EXAMPLES=examples, INPUT_SENTENCE=input_sentence)
+
+    return PROMPT_ENGINE[args.prompt].format(EXAMPLES=examples, INPUT_SENTENCE=input_sentence)
 
 
 if __name__ == "__main__":
@@ -137,6 +123,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_shots", type=int, default=5)
+    parser.add_argument("--prompt", type=str, default="classify_with_words")
     args = parser.parse_args()
     label2texts = {
         "none": ["আমি বাংলা ভাষার জন্য একটি ভাষা শিখছি", "আজ আবহাওয়া খুব ভালো", "আমি বই পড়তে পছন্দ করি"],

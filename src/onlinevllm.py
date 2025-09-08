@@ -69,12 +69,12 @@ class OnlineVLLM:
             return
 
         print(f"Running VLLM on {self.devices} for {self.model_id} on port {self.port}")
-        max_model_len = 16384
+        max_model_len = 32768
         max_num_seqs = 256
         if any(arg in self.model_id.lower() for arg in ["235"]):
             max_num_seqs = 2
         elif any(arg in self.model_id.lower() for arg in ["120"]):
-            max_num_seqs = 8
+            max_num_seqs = 4
         elif any(arg in self.model_id.lower() for arg in ["70", "72"]):
             max_num_seqs = 128
         elif any(arg in self.model_id.lower() for arg in ["32", "30", "20"]):
@@ -88,6 +88,8 @@ class OnlineVLLM:
                 --max-model-len {max_model_len} \
                 --max-num-seqs {max_num_seqs} \
                 --port {self.port} \
+                --enable-prefix-caching \
+                --block-size 16 
         """
         if "qwen3" in self.model_id.lower() and "thinking" in self.model_id.lower():
             cmd += " --reasoning-parser qwen3"
