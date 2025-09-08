@@ -17,6 +17,91 @@ Your final output should be the category classification. Use only one of these e
 
 Provide your classification inside <classification> tags."""
 
+improved_classify_prompt = """\
+You are an AI language model specialized in detecting hate speech in Bengali. Your task is to classify a given Bengali sentence into one of six categories: none, sexism, abusive, profane, religious hate, or political hate.
+
+First, review these examples of sentences for each category:
+
+<examples>
+{EXAMPLES}
+</examples>
+
+Here's the Bengali sentence you need to classify:
+
+<input_sentence>
+{INPUT_SENTENCE}
+</input_sentence>
+
+Before making your final classification, analyze the sentence in detail. Consider the following:
+1. Compare the sentence to the provided examples.
+2. Examine the tone, specific words used, and overall context.
+3. For each category (none, sexism, abusive, profane, religious hate, political hate):
+   - List evidence for classifying the sentence into this category.
+   - List evidence against classifying the sentence into this category.
+4. Summarize your findings and explain your final decision.
+
+Conduct your analysis inside <category_analysis> tags. It's OK for this section to be quite long.
+
+After your analysis, classify the sentence into one of the six categories. Your final output should be the category name within <classification> tags.
+
+Example output format:
+<category_analysis>
+[Your detailed analysis here]
+</category_analysis>
+
+<classification>category_name</classification>
+
+Remember to use only one of these exact category names: none, sexism, abusive, profane, religious hate, or political hate.
+"""
+
+classify_with_words_prompt = """\
+You are an AI language model specialized in detecting hate speech in Bengali. Your task is to classify a given Bengali sentence into one of six categories: none, sexism, abusive, profane, religious hate, or political hate.
+
+First, review these examples of sentences for each category:
+
+<examples>
+{EXAMPLES}
+</examples>
+
+Now, consider these common words associated with each category. Note that the presence of these words doesn't guarantee classification into that category, but they can be helpful indicators:
+
+<category_keywords>
+abusive: দালাল, টিভি, ফালতু, চোর, মিথ্যা, পাগল, জুতা, লজ্জা, আমিন
+profane: বাল, মাগি, খানকি, বেশ্যা, দফা, বাচ্চা, সালা, শালা, মাদারচোদ, কুত্তা, জারজ, পোলা, শুয়োর
+religious hate: মুসলিম, হিন্দু, ইহুদি, মুসলমান, গজব, ধর্ম, ইসলাম, কাফের, মসজিদ, ধর্মীয়, মোল্লা, আল্লাহ
+political hate: ভোট, বিএনপি, আওয়ামী, লীগ, সরকার, নির্বাচন, হাসিনা, অবৈধ, জনগণ, পার্টি, দল, চোর, রাজনীতি
+sexism: নারী, পরকিয়া, মহিলা, পুরুষ, হিজরা, বিয়ে, লিঙ্গ, হোটেল, মেয়ে, বেডা, আবাসিক
+</category_keywords>
+
+Here's the Bengali sentence you need to classify:
+
+<input_sentence>
+{INPUT_SENTENCE}
+</input_sentence>
+
+Before making your final classification, analyze the sentence in detail. Consider the following:
+1. Compare the sentence to the provided examples.
+2. Examine the tone, specific words used, and overall context.
+3. Check if any words from the category_keywords are present and relevant.
+4. For each category (none, sexism, abusive, profane, religious hate, political hate):
+   - List evidence for classifying the sentence into this category.
+   - List evidence against classifying the sentence into this category.
+5. Summarize your findings and explain your final decision.
+
+Conduct your analysis inside <category_analysis> tags. It's OK for this section to be quite long.
+
+After your analysis, classify the sentence into one of the six categories. Your final output should be the category name within <classification> tags.
+
+Example output format:
+<category_analysis>
+[Your detailed analysis here]
+</category_analysis>
+
+<classification>category_name</classification>
+
+Remember to use only one of these exact category names: none, sexism, abusive, profane, religious hate, or political hate.
+"""
+
 
 def get_prompt(args, label2texts, input_sentence):
     """
@@ -44,7 +129,7 @@ def get_prompt(args, label2texts, input_sentence):
         examples += f"</{label}>\n\n"
     examples = examples.strip()
     examples = f"\n{examples}\n"
-    return classify_prompt.format(EXAMPLES=examples, INPUT_SENTENCE=input_sentence)
+    return improved_classify_prompt.format(EXAMPLES=examples, INPUT_SENTENCE=input_sentence)
 
 
 if __name__ == "__main__":
