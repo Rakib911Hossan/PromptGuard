@@ -1,5 +1,6 @@
-import random
+import json
 import os
+import random
 from collections import defaultdict
 
 import pandas as pd
@@ -212,8 +213,13 @@ def get_balanced_test_data(df):
     df["label"] = df["label"].fillna("none")
     df["label"] = df["label"].astype(str)
     df["label"] = df["label"].str.lower()
-    balanced_df = df.groupby("label").sample(n=2, random_state=42)
+    split = "dev" if not args.test else "test"
+    path = f"data/1a_{split}_balanced.csv"
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    balanced_df = df.groupby("label").sample(n=10, random_state=42)
     balanced_df = balanced_df.reset_index(drop=True)
+    balanced_df.to_csv(path, index=False)
     return balanced_df
 
 
@@ -253,10 +259,9 @@ def main(args):
         pred_labels = [pred_label.lower() for pred_label in pred_labels]
         gold_labels = [gold_label.lower() for gold_label in gold_labels]
         acc, precision, recall, f1 = evaluate(gold_labels, pred_labels)
-        print(f"Accuracy: {acc}")
-        print(f"Precision: {precision}")
-        print(f"Recall: {recall}")
-        print(f"F1: {f1}")
+
+        with open(f"output/dev/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.json", "w") as f:
+            json.dump({"accuracy": acc, "precision": precision, "recall": recall, "f1": f1}, f, indent=2)
 
         dev_data["pred_label"] = pred_labels
         dev_data["gold_label"] = gold_labels
