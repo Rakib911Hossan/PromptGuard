@@ -43,7 +43,10 @@ def get_data():
 
 
 def run_turn(args, turn_num, label2texts, input_sentence):
-    curr_label2texts = {label: texts[turn_num * args.num_shots : (turn_num + 1) * args.num_shots] for label, texts in label2texts.items()}
+    if (turn_num + 1) * args.num_shots > len(label2texts[list(label2texts.keys())[0]]):
+        curr_label2texts = {label: random.sample(texts, args.num_shots) for label, texts in label2texts.items()}
+    else:
+        curr_label2texts = {label: texts[turn_num * args.num_shots : (turn_num + 1) * args.num_shots] for label, texts in label2texts.items()}
     prompt = get_prompt(args, curr_label2texts, input_sentence)
     response = onlinevllm.chat(prompt)
     return response.choices[0].message.content
@@ -142,14 +145,18 @@ def get_balanced_test_data(df):
 
 
 def main(args):
+    print("######################################################################")
+    print(json.dumps(args.__dict__, indent=2))
+    print("######################################################################")
     label2texts, dev_data, test_data = get_data()
-    assert args.num_shots * args.num_turns <= len(label2texts[list(label2texts.keys())[0]])
+    # assert args.num_shots * args.num_turns <= len(label2texts[list(label2texts.keys())[0]])
     if "balanced" in args.split:
         dev_data = get_balanced_test_data(dev_data)
         test_data = test_data.sample(n=10, random_state=42)
 
     if "dev" in args.split:
         if os.path.exists(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv"):
+            print(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv already exists")
             return
         pred_labels = []
         gold_labels = []
@@ -182,6 +189,7 @@ def main(args):
         print(f"Saved dev data to {f'output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace("/", "_")}.csv'}")
     else:
         if os.path.exists(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv"):
+            print(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv already exists")
             return
         pred_labels = []
         func_args = []

@@ -78,7 +78,7 @@ class OnlineVLLM:
         elif any(arg in self.model_id.lower() for arg in ["70", "72"]):
             max_num_seqs = 128
         elif any(arg in self.model_id.lower() for arg in ["32", "30", "20"]):
-            max_num_seqs = 256
+            max_num_seqs = 512
         cmd = f"""
         export CUDA_VISIBLE_DEVICES={self.devices} && \
             vllm serve {self.model_id} \
@@ -163,5 +163,7 @@ class OnlineVLLM:
             configs["tool_choice"] = tool_choice
         for key, value in kwargs.items():
             configs[key] = value
+
+        configs["timeout"] = 1000
         response = self.client.chat.completions.create(**configs)
         return response

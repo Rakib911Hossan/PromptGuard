@@ -6,34 +6,37 @@ Simple Python conversion of test.sh
 import os
 
 MODELS = [
-    "Qwen/Qwen3-30B-A3B-Thinking-2507",
+    # "Qwen/Qwen3-30B-A3B-Thinking-2507",
     "Qwen/Qwen3-32B",
-    "Qwen/QwQ-32B",
+    # "Qwen/QwQ-32B",
     # "openai/gpt-oss-20b",
     # "openai/gpt-oss-120b",
 ]
 
 NUM_SHOTS = [
-    3,
-    7,
+    # 3,
+    # 7,
     10,
     16,
+    20,
+    30,
 ]
 NUM_TURNS = [
     3,
     7,
     10,
+    # 16,
 ]
 
 SPLITS = [
-    # "dev",
-    "dev_balanced",
+    "dev",
+    # "dev_balanced",
     # "test",
 ]
 
 PROMPTS = [
     # "classify",
-    "improved_classify",
+    # "improved_classify",
     "classify_with_words",
 ]
 
@@ -58,16 +61,16 @@ def main():
     for prompt in PROMPTS:
         for i in NUM_TURNS:
             for j in NUM_SHOTS:
-                if i * j > 120:
-                    print(f"Skipping {i} turns and {j} shots because it exceeds 120")
-                    continue
+                # if i * j > 120:
+                #     print(f"Skipping {i} turns and {j} shots because it exceeds 120")
+                #     continue
                 for model_id in MODELS:
                     for split in SPLITS:
-                        if os.path.exists(f"output/{split}/{prompt}/{i}_{j}_{model_id.replace('/', '_')}.json"):
+                        if os.path.exists(f"output/{split}/{prompt}/{j}_{i}_{model_id.replace('/', '_')}.json"):
                             print(f"Skipping {i} turns and {j} shots and {model_id} and {split} because it already exists")
                             continue
                         print(f"Running for {i} turns and {j} shots and {model_id} and {split}, with prompt {prompt}")
-                        cmd = get_cmd(model_id, i, j, split, prompt, f"logs/{split}/{prompt}/few_shot_submission_{model_id.replace('/', '_')}_{i}-{j}.log")
+                        cmd = get_cmd(model_id, i, j, split, prompt, f"logs/{split}/{prompt}/few_shot_submission_{model_id.replace('/', '_')}_{j}-{i}.log")
                         run_command(cmd)
 
 
