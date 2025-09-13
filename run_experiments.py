@@ -16,22 +16,22 @@ MODELS = [
 NUM_SHOTS = [
     # 3,
     # 7,
-    10,
-    16,
-    20,
+    # 10,
+    # 16,
+    # 20,
     30,
 ]
 NUM_TURNS = [
-    3,
+    # 3,
     7,
-    10,
+    # 10,
     # 16,
 ]
 
 SPLITS = [
-    "dev",
+    # "dev",
     # "dev_balanced",
-    # "test",
+    "test",
 ]
 
 PROMPTS = [

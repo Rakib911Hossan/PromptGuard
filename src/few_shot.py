@@ -37,7 +37,7 @@ def get_data():
     dev_data = pd.read_csv("data/1a_dev.tsv", sep="\t")
     dev_data = process_data(dev_data)
 
-    test_data = pd.read_csv("data/1a_dev_test.tsv", sep="\t")
+    test_data = pd.read_csv("data/1a_test.tsv", sep="\t")
 
     return label2texts, dev_data, test_data
 
@@ -92,7 +92,26 @@ def parse_output(output):
         return "none"
 
 
+import hashlib
+import unicodedata
+
+
+def bengali_hash(text):
+    normalized = unicodedata.normalize("NFC", text)
+    encoded = normalized.encode("utf-8")
+    hash_obj = hashlib.sha256(encoded)
+    return hash_obj.hexdigest()
+
+
 def run_row(args, label2texts, input_sentence):
+    hashed_sen = bengali_hash(input_sentence)
+    if os.path.exists(f".cache/{hashed_sen}.txt"):
+        with open(f".cache/{hashed_sen}.txt", "r") as f:
+            prev_input_sentence = f.readline().strip()
+            prev_winner = f.readline().strip()
+            if prev_input_sentence == input_sentence:
+                return prev_winner
+
     copy_label2texts = {label: texts for label, texts in label2texts.items()}
 
     outputs = []
@@ -102,6 +121,7 @@ def run_row(args, label2texts, input_sentence):
         outputs.append(output)
 
     max_iterations = 10
+    winner = "none"
     while max_iterations > 0:
         counts = {}
         for output in outputs:
@@ -111,7 +131,8 @@ def run_row(args, label2texts, input_sentence):
         winners = [key for key, value in counts.items() if value == max_count]
 
         if len(winners) == 1:
-            return winners[0]
+            winner = winners[0]
+            break
 
         # random shuffle the copy_label2texts
         for key in copy_label2texts.keys():
@@ -125,10 +146,12 @@ def run_row(args, label2texts, input_sentence):
     # If we still have a tie after max iterations, return the first winner
     # or "none" as fallback if no winners exist (should not happen)
     if winners:
-        return winners[0]
-    else:
-        logger.warning("No winners found after max iterations, returning 'none' as fallback")
-        return "none"
+        winner = winners[0]
+
+    with open(f".cache/{hashed_sen}.txt", "w") as f:
+        f.write(input_sentence)
+        f.write(winner)
+    return winner
 
 
 def get_balanced_test_data(df):
@@ -196,6 +219,8 @@ def main(args):
         for i, row in test_data.iterrows():
             input_sentence = row["text"]
             func_args.append((args, label2texts, input_sentence))
+
+        print(f"Running {len(func_args)} rows")
 
         pred_labels = Parallel(n_jobs=-1, backend="threading")(
             delayed(run_row)(args, label2texts, input_sentence) for args, label2texts, input_sentence in tqdm(func_args, desc="Running few-shot inference")
