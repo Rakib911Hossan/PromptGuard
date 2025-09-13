@@ -114,11 +114,10 @@ def run_row(args, label2texts, input_sentence):
 
     copy_label2texts = {label: texts for label, texts in label2texts.items()}
 
-    outputs = []
-    for turn_num in range(args.num_turns):
-        output = run_turn(args, turn_num, copy_label2texts, input_sentence)
-        output = parse_output(output)
-        outputs.append(output)
+    outputs = Parallel(n_jobs=args.num_turns, backend="threading")(
+        delayed(run_turn)(args, turn_num, copy_label2texts, input_sentence) for turn_num in range(args.num_turns)
+    )
+    outputs = [parse_output(output) for output in outputs]
 
     max_iterations = 10
     winner = "none"
