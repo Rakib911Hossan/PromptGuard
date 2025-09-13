@@ -110,6 +110,7 @@ def run_row(args, label2texts, input_sentence):
             prev_input_sentence = f.readline().strip()
             prev_winner = f.readline().strip()
             if prev_input_sentence == input_sentence:
+                print(f"Found in cache: {hashed_sen}, skipping...")
                 return prev_winner
 
     copy_label2texts = {label: texts for label, texts in label2texts.items()}
