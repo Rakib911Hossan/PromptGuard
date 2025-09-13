@@ -221,7 +221,7 @@ def main(args):
 
         print(f"Running {len(func_args)} rows")
 
-        pred_labels = Parallel(n_jobs=-1, backend="threading")(
+        pred_labels = Parallel(n_jobs=256, backend="threading")(
             delayed(run_row)(args, label2texts, input_sentence) for args, label2texts, input_sentence in tqdm(func_args, desc="Running few-shot inference")
         )
         pred_labels = [pred_label.lower() for pred_label in pred_labels]
