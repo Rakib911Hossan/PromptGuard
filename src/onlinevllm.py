@@ -168,4 +168,6 @@ class OnlineVLLM:
 
         configs["timeout"] = 300
         response = self.client.chat.completions.create(**configs)
+        # print token
+        print(response.usage)
         return response
