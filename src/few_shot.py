@@ -148,8 +148,8 @@ def run_row(args, label2texts, input_sentence):
         winner = winners[0]
 
     with open(f".cache/{hashed_sen}.txt", "w") as f:
-        f.write(input_sentence)
-        f.write(winner)
+        f.write(input_sentence + "\n")
+        f.write(winner + "\n")
     return winner
 
 
