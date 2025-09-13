@@ -5,6 +5,7 @@ import time
 
 import torch
 from openai import OpenAI
+from retry import retry
 
 
 class OnlineVLLM:
@@ -135,6 +136,7 @@ class OnlineVLLM:
             print("Waiting for VLLM to be killed...")
             time.sleep(30)
 
+    @retry(tries=-1, delay=2, backoff=2)
     def chat(self, prompt_messages: str | list[dict[str, str]], tools=None, tool_choice=None, **kwargs):
         """
         Send a chat completion request to the VLLM server.
@@ -164,6 +166,6 @@ class OnlineVLLM:
         for key, value in kwargs.items():
             configs[key] = value
 
-        configs["timeout"] = 1000
+        configs["timeout"] = 300
         response = self.client.chat.completions.create(**configs)
         return response
