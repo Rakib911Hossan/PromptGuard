@@ -49,7 +49,7 @@ def run_turn(args, turn_num, label2texts, input_sentence):
         curr_label2texts = {label: texts[turn_num * args.num_shots : (turn_num + 1) * args.num_shots] for label, texts in label2texts.items()}
     prompt = get_prompt(args, curr_label2texts, input_sentence)
     response = onlinevllm.chat(prompt)
-    return response.choices[0].message.content
+    return response
 
 
 def evaluate(gold_values, pred_values):
@@ -109,7 +109,7 @@ def run_row(args, label2texts, input_sentence):
         with open(f".cache/{hashed_sen}.txt", "r") as f:
             prev_input_sentence = f.readline().strip()
             prev_winner = f.readline().strip()
-            if prev_input_sentence == input_sentence:
+            if prev_input_sentence == input_sentence and prev_winner != "regenerate":
                 print(f"Found in cache: {hashed_sen}, skipping...")
                 return prev_winner
 
@@ -121,7 +121,7 @@ def run_row(args, label2texts, input_sentence):
     outputs = [parse_output(output) for output in outputs]
 
     max_iterations = 10
-    winner = "none"
+    winner = "regenerate"
     while max_iterations > 0:
         counts = {}
         for output in outputs:
@@ -145,8 +145,8 @@ def run_row(args, label2texts, input_sentence):
 
     # If we still have a tie after max iterations, return the first winner
     # or "none" as fallback if no winners exist (should not happen)
-    if winners:
-        winner = winners[0]
+    # if winners:
+    #     winner = winners[0]
 
     with open(f".cache/{hashed_sen}.txt", "w") as f:
         f.write(input_sentence + "\n")
@@ -236,8 +236,54 @@ def main(args):
 
         submission_data["label"] = submission_data["label"].apply(format_label)
         submission_data = submission_data.reset_index(drop=True)
+        os.makedirs(f"output/{args.split}/{args.prompt}", exist_ok=True)
         submission_data.to_csv(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
         print(f"Saved test data to {f'output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace("/", "_")}.csv'}")
+
+
+def submit(args):
+    test_data = pd.read_csv(f"data/1a_test.tsv", sep="\t")
+    pred_labels = []
+    from tqdm import tqdm
+
+    for i, row in tqdm(test_data.iterrows(), desc="Submitting test data"):
+        input_sentence = row["text"]
+        hashed_sen = bengali_hash(input_sentence)
+        # assert os.path.exists(f".cache/{hashed_sen}.txt"), f"Cache file {f'.cache/{hashed_sen}.txt'} not found"
+        if os.path.exists(f".cache/{hashed_sen}.txt"):
+            with open(f".cache/{hashed_sen}.txt", "r") as f:
+                prev_input_sentence = f.readline().strip()
+                prev_winner = f.readline().strip()
+                if prev_input_sentence == input_sentence and prev_winner != "regenerate":
+                    pred_label = prev_winner
+                else:
+                    raise ValueError(f"Input sentence {input_sentence} not found in cache")
+        else:
+            with open(f".cache_10_3/{hashed_sen}.txt", "r") as f:
+                print("second cache")
+                prev_input_sentence = f.readline().strip()
+                prev_winner = f.readline().strip()
+                if prev_input_sentence == input_sentence and prev_winner != "regenerate":
+                    pred_label = prev_winner
+                else:
+                    raise ValueError(f"Input sentence {input_sentence} not found in cache")
+
+        pred_labels.append(pred_label)
+
+    pred_labels = [pred_label.lower() for pred_label in pred_labels]
+
+    submission_data = test_data[["id"]]
+    submission_data["label"] = pred_labels
+    submission_data["model"] = f"{args.model_id.replace('/', '_')}_{args.num_shots}_{args.num_turns}"
+
+    def format_label(label):
+        return " ".join(word.capitalize() for word in label.split())
+
+    submission_data["label"] = submission_data["label"].apply(format_label)
+    submission_data = submission_data.reset_index(drop=True)
+    os.makedirs(f"output/{args.split}/{args.prompt}", exist_ok=True)
+    submission_data.to_csv(f"output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace('/', '_')}.csv", index=False)
+    print(f"Saved test data to {f'output/{args.split}/{args.prompt}/{args.num_shots}_{args.num_turns}_{args.model_id.replace("/", "_")}.csv'}")
 
 
 if __name__ == "__main__":
@@ -250,6 +296,7 @@ if __name__ == "__main__":
     parser.add_argument("--prompt", type=str, default="classify_with_words")
     parser.add_argument("--split", type=str, default="dev")
     args = parser.parse_args()
+    # submit(args)
     onlinevllm = OnlineVLLM(model_id=args.model_id)
     onlinevllm.init_vllm()
     main(args)

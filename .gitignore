@@ -219,3 +219,6 @@ __marimo__/
 output_v1/
 wandb/
 output/
+.cache/
+.cache_copy/
+.cache_10_3/

@@ -70,7 +70,7 @@ class OnlineVLLM:
             return
 
         print(f"Running VLLM on {self.devices} for {self.model_id} on port {self.port}")
-        max_model_len = 32768
+        max_model_len = 20000
         max_num_seqs = 256
         if any(arg in self.model_id.lower() for arg in ["235"]):
             max_num_seqs = 2
@@ -79,7 +79,7 @@ class OnlineVLLM:
         elif any(arg in self.model_id.lower() for arg in ["70", "72"]):
             max_num_seqs = 128
         elif any(arg in self.model_id.lower() for arg in ["32", "30", "20"]):
-            max_num_seqs = 512
+            max_num_seqs = 128
         cmd = f"""
         export CUDA_VISIBLE_DEVICES={self.devices} && \
             vllm serve {self.model_id} \
@@ -167,7 +167,14 @@ class OnlineVLLM:
             configs[key] = value
 
         configs["timeout"] = 300
-        response = self.client.chat.completions.create(**configs)
+        try:
+            response = self.client.chat.completions.create(**configs)
+        # catch token limit error
+        except Exception as e:
+            if "token limit" in str(e):
+                print("$$$$ erorr during chat: ", e)
+                return "regenerate"
+            raise e
         # print token
         print(response.usage)
-        return response
+        return response.choices[0].message.content
