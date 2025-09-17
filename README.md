@@ -1,4 +1,4 @@
-# hate_speech_detection
+# PromptGuard: A Few-Shot Classification Framework Using Majority Voting and Keyword Similarity for Bengali Hate Speech Detection
 
 The project employs a few-shot learning methodology for Bengali hate speech classification. The manager agent orchestrates the process. For each input sentence, it generates a detailed few-shot prompt. These prompts are enriched with a specified number of examples for each of the six hate speech categories, drawn from the training set. Our prompt variation also includes category-specific keywords to guide the model, these keywords are extracted based on the most similar words correlated with the label in the training set.
 
