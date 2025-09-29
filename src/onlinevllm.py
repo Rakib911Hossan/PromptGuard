@@ -1,4 +1,5 @@
 import os
+import random
 import signal
 import subprocess
 import time
@@ -6,6 +7,8 @@ import time
 import torch
 from openai import OpenAI
 from retry import retry
+
+PORT = random.randint(8888, 9999)
 
 
 class OnlineVLLM:
@@ -20,7 +23,7 @@ class OnlineVLLM:
     ```
     """
 
-    def __init__(self, model_id: str, port: int = 8888, devices=None, api_key: str = "empty"):
+    def __init__(self, model_id: str, port: int = PORT, devices=None, api_key: str = "empty"):
         """
         Initialize the OnlineVLLM client.
 
@@ -83,15 +86,14 @@ class OnlineVLLM:
         cmd = f"""
         export CUDA_VISIBLE_DEVICES={self.devices} && \
             vllm serve {self.model_id} \
-                -tp {len(self.devices.split(","))} \
+                -dp {len(self.devices.split(","))} \
                 --load-format safetensors \
                 --gpu-memory-utilization 0.95 \
                 --max-model-len {max_model_len} \
                 --max-num-seqs {max_num_seqs} \
                 --port {self.port} \
                 --enable-prefix-caching \
-                --block-size 16 
-        """
+                --block-size 16"""
         if "qwen3" in self.model_id.lower() and "thinking" in self.model_id.lower():
             cmd += " --reasoning-parser qwen3"
 

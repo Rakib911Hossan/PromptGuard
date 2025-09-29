@@ -7,31 +7,42 @@ import os
 
 MODELS = [
     # "Qwen/Qwen3-30B-A3B-Thinking-2507",
+    # "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    # "Qwen/Qwen3-4B-Thinking-2507",
+    # "Qwen/Qwen3-4B-Instruct-2507",
+    # "Qwen/Qwen3-30B-A3B",
     "Qwen/Qwen3-32B",
+    # "Qwen/Qwen3-14B",
+    # "Qwen/Qwen3-8B",
+    # "Qwen/Qwen3-4B",
+    # "Qwen/Qwen3-1.7B",
+    # "Qwen/Qwen3-0.6B",
     # "Qwen/QwQ-32B",
     # "openai/gpt-oss-20b",
     # "openai/gpt-oss-120b",
 ]
 
 NUM_SHOTS = [
-    # 3,
-    # 7,
-    # 10,
-    # 16,
-    20,
-    # 30,
-]
-NUM_TURNS = [
     3,
     # 7,
     # 10,
     # 16,
+    # 20,
+    # 30,
+]
+NUM_TURNS = [
+    3,
+    7,
+    10,
+    16,
 ]
 
 SPLITS = [
     # "dev",
     # "dev_balanced",
-    "test",
+    # "test",
+    "dev_test_labeled",
+    # "dev_test_labeled_balanced",
 ]
 
 PROMPTS = [
